@@ -1,0 +1,6 @@
+.build/
+build/
+*.apkm
+*.apk
+.DS_Store
+.swiftpm/
