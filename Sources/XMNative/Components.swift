@@ -86,8 +86,7 @@ struct NoiseControlSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             NoiseModePicker(modes: nc.supportedModes, selection: nc.mode) { mode in
-                model.perform(.setNoise(mode: mode, ambientLevel: nc.ambientLevel, voiceFocus: nc.voiceFocus,
-                                        isFinal: true, announce: model.announceModeChanges))
+                model.perform(.setNoise(mode: mode, ambientLevel: nc.ambientLevel, voiceFocus: nc.voiceFocus, isFinal: true))
             }
             if nc.mode == .ambient {
                 VStack(alignment: .leading, spacing: 10) {

@@ -88,9 +88,9 @@ the device, for example when you press the NC button.
 | General settings | caps `D0 id lang`; get `D6 id`; set `D8 id 01 on` | see below |
 
 **NC/ASM fields:** `effect` `00` off · `01` on · `10` slider being dragged · `11` change completed.
-Sound Connect sends `01` when a mode *button* is tapped (`NcAsmSendStatus.ON` in
-`ModeNcAsm…DetailView.z()`). That is the variant where the headphones announce the mode. Slider and checkbox
-changes use `10`/`11` and are silent. Table set 2 has no equivalent (`ValueChangeStatus` is only changing/changed).
+Sound Connect's table-set-1 screen sends `01` when its on/off switch turns noise control on and `10`/`11` for
+slider changes. None of these make the headphones speak the mode name: the WH-1000XM4 only announces modes
+when its own NC/AMB button is pressed, and the app has no command that triggers voice prompts.
 `ncSettingType` `00` on/off · `02` dual/single/off, so `ncValue` `00` off · `01` single (wind) · `02` dual (full NC).
 `asmSettingType` `00` on/off · `01` level (`asmLevel` 1…20). `asmId` `00` normal · `01` voice focus.
 Sony's controllers (`v30.b/c/d/e`) always send inquired type 2 and pick the setting types from the

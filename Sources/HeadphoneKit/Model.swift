@@ -85,8 +85,6 @@ public struct NoiseControlState: Equatable, Sendable {
     /// nil → ambient mode is on/off only, no slider.
     public var ambientLevelRange: ClosedRange<Int>?
     public var supportsVoiceFocus: Bool
-    /// Whether the protocol lets us choose if the headphones announce a mode change.
-    public var supportsAnnouncements: Bool = false
 
     public init(mode: NoiseMode, ambientLevel: Int, voiceFocus: Bool, supportedModes: [NoiseMode], ambientLevelRange: ClosedRange<Int>?, supportsVoiceFocus: Bool) {
         self.mode = mode

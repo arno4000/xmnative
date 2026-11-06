@@ -80,17 +80,17 @@ public enum SonyV1 {
     /// NCASM_SET_PARAM for inquired type 2 (NC + ASM), vm0.a0 layout:
     /// 68 02 effect ncSettingType ncValue asmSettingType asmId asmLevel
     /// effect (NcAsmEffect): 0x00 off, 0x01 on, 0x10 slider being dragged, 0x11 change completed.
-    /// Sound Connect sends 0x01 when a mode *button* is tapped (the headphones then announce the mode)
-    /// and 0x10/0x11 for slider/checkbox changes (silent).
-    static func effect(mode: NoiseMode, isFinal: Bool, announce: Bool) -> UInt8 {
+    /// Sound Connect's table-set-1 screen (feature/ncasm/n1) sends 0x01 when its on/off switch turns
+    /// noise control on, and 0x10/0x11 for slider changes. Neither makes the headphones speak.
+    static func effect(mode: NoiseMode, isFinal: Bool, turningOn: Bool) -> UInt8 {
         if mode == .off { return 0x00 }
         if !isFinal { return 0x10 }
-        return announce ? 0x01 : 0x11
+        return turningOn ? 0x01 : 0x11
     }
 
-    public static func setNcAsm(mode: NoiseMode, ambientLevel: Int, voiceFocus: Bool, isFinal: Bool, announce: Bool = false,
+    public static func setNcAsm(mode: NoiseMode, ambientLevel: Int, voiceFocus: Bool, isFinal: Bool, turningOn: Bool = false,
                                 ncSettingType: UInt8, asmSettingType: UInt8) -> [UInt8] {
-        let effect = effect(mode: mode, isFinal: isFinal, announce: announce)
+        let effect = effect(mode: mode, isFinal: isFinal, turningOn: turningOn)
         let dualSingle = ncSettingType == 0x02
         let ncValue: UInt8
         switch mode {
@@ -109,8 +109,8 @@ public enum SonyV1 {
     }
 
     /// Inquired type 3 (ambient only): 68 03 effect asmSettingType asmId level
-    public static func setAsmOnly(enabled: Bool, ambientLevel: Int, voiceFocus: Bool, isFinal: Bool, announce: Bool = false, asmSettingType: UInt8) -> [UInt8] {
-        let effect = effect(mode: enabled ? .ambient : .off, isFinal: isFinal, announce: announce)
+    public static func setAsmOnly(enabled: Bool, ambientLevel: Int, voiceFocus: Bool, isFinal: Bool, turningOn: Bool = false, asmSettingType: UInt8) -> [UInt8] {
+        let effect = effect(mode: enabled ? .ambient : .off, isFinal: isFinal, turningOn: turningOn)
         let level: UInt8 = enabled ? (asmSettingType == 0x01 ? UInt8(clamping: max(1, ambientLevel)) : 0x01) : 0x00
         return [Cmd.ncSetParam, 0x03, effect, asmSettingType, voiceFocus ? 0x01 : 0x00, level]
     }

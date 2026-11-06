@@ -11,7 +11,6 @@ This is a personal project and has nothing to do with Sony.
 ## Features
 
 - Noise cancelling, wind reduction, ambient sound (with level and "focus on voice"), off
-- Optional spoken confirmation on the headphones when you switch modes, like in the Sony app
 - EQ presets and the custom EQ, including Clear Bass
 - Speak-to-Chat, with sensitivity and timeout
 - NC Optimizer

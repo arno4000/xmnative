@@ -143,15 +143,6 @@ struct SoundPane: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                if nc.supportsAnnouncements {
-                    Section {
-                        @Bindable var model = model
-                        Toggle("Announce mode changes on the headphones", isOn: $model.announceModeChanges)
-                    } footer: {
-                        Text("The headphones say “Noise cancelling”, “Ambient sound” … when you pick a mode here, like in the Sony app.")
-                            .foregroundStyle(.secondary)
-                    }
-                }
             } else {
                 Text("This device has no noise control.")
             }

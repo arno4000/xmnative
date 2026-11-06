@@ -27,10 +27,6 @@ final class AppModel {
     var lastAddress: String? {
         didSet { defaults.set(lastAddress, forKey: "lastAddress") }
     }
-    /// Let the headphones speak the new mode when a mode button is tapped (Sound Connect does this).
-    var announceModeChanges: Bool {
-        didSet { defaults.set(announceModeChanges, forKey: "announceModeChanges") }
-    }
     var showBatteryInMenuBar: Bool {
         didSet { defaults.set(showBatteryInMenuBar, forKey: "showBatteryInMenuBar") }
     }
@@ -61,7 +57,6 @@ final class AppModel {
 
     init() {
         autoConnect = defaults.object(forKey: "autoConnect") as? Bool ?? true
-        announceModeChanges = defaults.object(forKey: "announceModeChanges") as? Bool ?? true
         showBatteryInMenuBar = defaults.object(forKey: "showBatteryInMenuBar") as? Bool ?? true
         lastAddress = defaults.string(forKey: "lastAddress")
         directory.onChange = { [weak self] in self?.devicesChanged() }

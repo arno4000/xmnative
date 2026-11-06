@@ -32,8 +32,7 @@ public struct DeviceDescriptor: Hashable, Sendable, Identifiable {
 /// User intents. Drivers translate them to vendor commands.
 public enum HeadphoneAction: Sendable, Equatable {
     /// `isFinal == false` while a slider is still being dragged.
-    /// `announce == true` asks the headphones to speak the new mode (if they support that).
-    case setNoise(mode: NoiseMode, ambientLevel: Int, voiceFocus: Bool, isFinal: Bool, announce: Bool = false)
+    case setNoise(mode: NoiseMode, ambientLevel: Int, voiceFocus: Bool, isFinal: Bool)
     case selectEqPreset(id: Int)
     case setEqBands([Int])
     case setSpeakToChat(enabled: Bool)

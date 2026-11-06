@@ -18,13 +18,12 @@ import HeadphoneKit
                                 ncSettingType: 0x02, asmSettingType: 0x01)[2] == 0x11)
     }
 
-    @Test func modeButtonAnnouncesLikeSoundConnect() {
-        // Mode button tap → NcAsmSendStatus.ON → effect 0x01 (headphones speak the mode)
-        #expect(SonyV1.setNcAsm(mode: .noiseCancelling, ambientLevel: 0, voiceFocus: false, isFinal: true, announce: true,
+    @Test func turningOnFromOffUsesEffectOn() {
+        // Like Sound Connect's on/off switch: NcAsmSendStatus.ON → effect 0x01
+        #expect(SonyV1.setNcAsm(mode: .noiseCancelling, ambientLevel: 0, voiceFocus: false, isFinal: true, turningOn: true,
                                 ncSettingType: 0x02, asmSettingType: 0x01)
                 == [0x68, 0x02, 0x01, 0x02, 0x02, 0x01, 0x00, 0x00])
-        // Dragging stays 0x10 even with announce on
-        #expect(SonyV1.setNcAsm(mode: .ambient, ambientLevel: 3, voiceFocus: false, isFinal: false, announce: true,
+        #expect(SonyV1.setNcAsm(mode: .ambient, ambientLevel: 3, voiceFocus: false, isFinal: false, turningOn: true,
                                 ncSettingType: 0x02, asmSettingType: 0x01)[2] == 0x10)
     }
 

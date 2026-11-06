@@ -391,7 +391,6 @@ public final class SonyDriver: HeadphoneDriver {
             n.ambientLevelRange = 1 ... 20
             n.supportsVoiceFocus = true
         }
-        n.supportsAnnouncements = table == .one
         n.ambientLevel = min(max(n.ambientLevel, n.ambientLevelRange?.lowerBound ?? 1), n.ambientLevelRange?.upperBound ?? 20)
     }
 
@@ -451,7 +450,8 @@ public final class SonyDriver: HeadphoneDriver {
 
     private func execute(_ action: HeadphoneAction) async {
         switch action {
-        case let .setNoise(mode, level, voice, isFinal, announce):
+        case let .setNoise(mode, level, voice, isFinal):
+            let turningOn = state.noiseControl?.mode == .off && mode != .off
             if var n = state.noiseControl {
                 n.mode = mode; n.ambientLevel = level; n.voiceFocus = voice
                 state.noiseControl = n
@@ -462,8 +462,8 @@ public final class SonyDriver: HeadphoneDriver {
                 switch c.type {
                 case 0x01: await send(SonyV1.setNcOnly(enabled: mode != .off))
                 case 0x03: await send(SonyV1.setAsmOnly(enabled: mode == .ambient, ambientLevel: level, voiceFocus: voice, isFinal: isFinal,
-                                                        announce: announce, asmSettingType: c.asmSettingType))
-                default: await send(SonyV1.setNcAsm(mode: mode, ambientLevel: level, voiceFocus: voice, isFinal: isFinal, announce: announce,
+                                                        turningOn: turningOn, asmSettingType: c.asmSettingType))
+                default: await send(SonyV1.setNcAsm(mode: mode, ambientLevel: level, voiceFocus: voice, isFinal: isFinal, turningOn: turningOn,
                                                     ncSettingType: c.ncSettingType, asmSettingType: c.asmSettingType))
                 }
             case .two:
