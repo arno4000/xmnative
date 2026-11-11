@@ -4,3 +4,4 @@ build/
 *.apk
 .DS_Store
 .swiftpm/
+*.apks

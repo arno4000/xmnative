@@ -25,7 +25,10 @@ struct PopoverView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 120)
                 case .idle, .failed:
-                    DeviceListView()
+                    VStack(spacing: 10) {
+                        DeviceListView()
+                        MacEqualizerCard()
+                    }
                 }
             }
             .padding(12)
@@ -83,11 +86,17 @@ struct PopoverView: View {
                     .padding(.horizontal, 2)
                     .padding(.bottom, 2)
             }
+            if let lm = state.listeningModes {
+                ListeningModeSection(modes: lm, includeLiveNoise: true)
+                    .padding(.horizontal, 2)
+                    .padding(.bottom, 2)
+            }
             if let eq = state.equalizer {
-                Card("Equalizer", symbol: "slider.vertical.3", trailing: AnyView(EqPresetMenu(eq: eq))) {
+                Card("Equalizer", symbol: "slider.vertical.3", trailing: eq.presets.count > 1 ? AnyView(EqPresetMenu(eq: eq)) : AnyView(AppEqPresetMenu(eq: eq))) {
                     EqualizerBands(eq: eq, height: 64)
                 }
             }
+            MacEqualizerCard()
             if let p = state.playback {
                 Card { PlaybackControls(playback: p) }
             }
@@ -161,7 +170,7 @@ struct DeviceListView: View {
             }
             Text("Paired headphones").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
             if model.compatibleDevices.isEmpty {
-                Text("No Sony headphones found. Pair them in System Settings › Bluetooth. If they're paired but missing here, allow XMNative under Privacy & Security › Bluetooth.")
+                Text("No supported headphones found. Pair your Sony or Bose headphones in System Settings › Bluetooth. If they're paired but missing here, allow XMNative under Privacy & Security › Bluetooth.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -176,11 +185,12 @@ struct DeviceListView: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
+                    // Not disabled when macOS says "not connected": IOBluetooth sometimes reports that for
+                    // devices that are connected (seen with Bose). Opening the channel fails clearly if they aren't.
                     Button("Connect") { Task { await model.connect(d) } }
                         .buttonStyle(.glassProminent)
                         .controlSize(.small)
-                        .disabled(!d.isConnected)
-                        .help(d.isConnected ? "Open the control channel" : "Connect the headphones to this Mac first")
+                        .help(d.isConnected ? "Open the control channel" : "macOS doesn't report these as connected. Try anyway.")
                 }
                 .padding(10)
                 .background(.fill.quaternary, in: ConcentricRectangle(corners: .concentric(minimum: .fixed(12)), isUniform: true))

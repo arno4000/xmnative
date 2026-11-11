@@ -2,7 +2,7 @@ import Foundation
 import HeadphoneKit
 
 @MainActor
-public final class SonyDriver: HeadphoneDriver {
+public final class SonyDriver: HeadphoneDriver, WireLogging {
     public private(set) var state: HeadphoneState {
         didSet { if state != oldValue { onStateChange?(state) } }
     }
@@ -551,6 +551,10 @@ public final class SonyDriver: HeadphoneDriver {
             guard id.hasPrefix("gs-"), let gs = UInt8(id.dropFirst(3)) else { return }
             if let i = state.toggles.firstIndex(where: { $0.id == id }) { state.toggles[i].isOn = isOn }
             await send(table == .one ? SonyV1.setGeneralSetting(gs, isOn) : SonyV2.setGeneralSetting(gs, isOn))
+
+        case .selectListeningMode, .setNoiseLevel, .setChoice, .createListeningMode, .updateListeningMode,
+             .deleteListeningMode, .setListeningModeFavorite, .setLiveNoise:
+            return   // Bose-style features; Sony uses noise modes instead.
 
         case .startOptimizer, .cancelOptimizer:
             guard table == .one, state.optimizer != nil else { return }

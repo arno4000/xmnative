@@ -5,11 +5,13 @@ import HeadphoneKit
 @main
 struct XMNativeApp: App {
     @ViewState private var model = AppModel()
+    @ViewState private var macEQ = MacEqualizer()
 
     var body: some Scene {
         MenuBarExtra {
             PopoverView()
                 .environment(model)
+                .environment(macEQ)
         } label: {
             MenuBarLabel(model: model)
         }
@@ -18,6 +20,7 @@ struct XMNativeApp: App {
         Window("XMNative", id: "main") {
             MainWindow()
                 .environment(model)
+                .environment(macEQ)
                 .frame(minWidth: 720, minHeight: 520)
         }
         .defaultSize(width: 820, height: 600)
@@ -40,6 +43,7 @@ struct MenuBarLabel: View {
 
     private var symbol: String {
         guard model.connection == .connected else { return "headphones" }
+        if let mode = model.state?.listeningModes?.current { return mode.kind.symbol }
         switch model.state?.noiseControl?.mode {
         case .noiseCancelling?: return "headphones.circle.fill"
         case .ambient?: return "ear"
@@ -52,6 +56,7 @@ struct MenuBarLabel: View {
         guard model.connection == .connected else { return "XMNative, not connected" }
         var s = model.displayName
         if let m = model.state?.noiseControl?.mode { s += ", \(m.title)" }
+        if let m = model.state?.listeningModes?.current { s += ", \(m.name)" }
         if let b = model.batterySummary { s += ", battery \(b) percent" }
         return s
     }

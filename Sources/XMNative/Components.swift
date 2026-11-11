@@ -131,6 +131,99 @@ struct NoiseControlSection: View {
     }
 }
 
+// MARK: - Listening modes (Bose)
+
+extension ListeningMode.Kind {
+    var symbol: String {
+        switch self {
+        case .quiet: "headphones.circle.fill"
+        case .aware: "ear"
+        case .immersive: "dot.radiowaves.left.and.right"
+        case .custom: "slider.horizontal.3"
+        }
+    }
+}
+
+/// Mode selector, noise cancelling strength and immersive audio for the current mode.
+struct ListeningModeSection: View {
+    @Environment(AppModel.self) private var model
+    let modes: ListeningModesState
+    /// Show noise control outside of modes when the current mode has no level of its own (popover).
+    var includeLiveNoise = false
+    @Namespace private var glassNS
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if modes.modes.count <= 4 {
+                segmented
+            } else {
+                Picker("Mode", selection: Binding(get: { modes.currentID }, set: { model.perform(.selectListeningMode(id: $0)) })) {
+                    ForEach(modes.modes) { m in Label(m.name, systemImage: m.kind.symbol).tag(m.id) }
+                }
+                .pickerStyle(.menu)
+            }
+            if let level = modes.noiseLevel {
+                NoiseLevelSlider(value: level, range: modes.noiseLevelRange) { v, final in
+                    model.perform(.setNoiseLevel(v, isFinal: final))
+                }
+                .help("Noise cancelling strength of \(modes.current?.name ?? "this mode")")
+                .transition(.blurReplace)
+            } else if includeLiveNoise, let live = modes.liveNoise {
+                LiveNoiseSection(live: live)
+                    .transition(.blurReplace)
+            }
+            if let spatial = modes.spatialAudio {
+                HStack {
+                    Label(spatial.title, systemImage: "dot.radiowaves.left.and.right")
+                    Spacer()
+                    Picker(spatial.title, selection: Binding(get: { spatial.selectedID },
+                                                             set: { model.perform(.setChoice(id: spatial.id, optionID: $0)) })) {
+                        ForEach(spatial.options) { Text($0.title).tag($0.id) }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                }
+                .transition(.blurReplace)
+            }
+        }
+        .animation(.smooth(duration: 0.25), value: modes.currentID)
+    }
+
+    private var segmented: some View {
+        GlassEffectContainer(spacing: 4) {
+            HStack(spacing: 4) {
+                ForEach(modes.modes) { mode in
+                    let selected = modes.currentID == mode.id
+                    Button { model.perform(.selectListeningMode(id: mode.id)) } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: mode.kind.symbol)
+                                .font(.system(size: 16, weight: .medium))
+                                .frame(height: 20)
+                            Text(mode.name)
+                                .font(.caption.weight(.medium))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                        .foregroundStyle(selected ? Color.white : Color.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .contentShape(.capsule)
+                        .glassEffect(selected ? .regular.tint(.accentColor).interactive() : .identity, in: .capsule)
+                        .glassEffectID(mode.id, in: glassNS)
+                    }
+                    .buttonStyle(.plain)
+                    .help(mode.name)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+            .padding(4)
+            .background(.fill.quaternary, in: .capsule)
+        }
+        .animation(.bouncy(duration: 0.35), value: modes.currentID)
+    }
+}
+
 // MARK: - Equalizer
 
 struct EqPresetMenu: View {

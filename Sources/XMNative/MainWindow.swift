@@ -6,7 +6,7 @@ enum Pane: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .sound: "Noise Control"
+        case .sound: "Sound"
         case .equalizer: "Equalizer"
         case .conversation: "Speak-to-Chat"
         case .device: "Device"
@@ -44,6 +44,8 @@ struct MainWindow: View {
             Group {
                 if model.connection == .connected, let state = model.state {
                     detail(for: pane ?? .sound, state: state)
+                } else if pane == .equalizer {
+                    EqualizerPane(state: nil)
                 } else {
                     VStack(spacing: 16) {
                         Image(systemName: "headphones").font(.system(size: 48, weight: .light)).foregroundStyle(.tertiary)
@@ -84,13 +86,13 @@ struct MainWindow: View {
     }
 
     private var availablePanes: [Pane] {
-        guard let s = model.state else { return [.sound, .about] }
+        guard let s = model.state else { return [.sound, .equalizer, .about] }
         return Pane.allCases.filter { p in
             switch p {
-            case .sound: s.noiseControl != nil
-            case .equalizer: s.equalizer != nil
+            case .sound: s.noiseControl != nil || s.listeningModes != nil
+            case .equalizer: true   // the Mac equalizer works with any headphones
             case .conversation: s.speakToChat != nil
-            case .device: s.autoPowerOff != nil || s.upscaling != nil || s.connectionPriority != nil || !s.toggles.isEmpty || !s.buttons.isEmpty
+            case .device: s.autoPowerOff != nil || s.upscaling != nil || s.connectionPriority != nil || !s.toggles.isEmpty || !s.buttons.isEmpty || !s.choices.isEmpty
             case .about: true
             }
         }
@@ -123,6 +125,8 @@ struct MainWindow: View {
 struct SoundPane: View {
     @Environment(AppModel.self) private var model
     let state: HeadphoneState
+    @ViewState private var editing: ModeEditorTarget?
+
     var body: some View {
         Form {
             if let nc = state.noiseControl {
@@ -143,11 +147,43 @@ struct SoundPane: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+            } else if let lm = state.listeningModes {
+                Section {
+                    ListeningModeSection(modes: lm).padding(.vertical, 6)
+                } header: {
+                    Text("Current Mode")
+                } footer: {
+                    Text(currentModeFooter(lm)).foregroundStyle(.secondary)
+                }
+                if let live = lm.liveNoise {
+                    Section {
+                        LiveNoiseSection(live: live).padding(.vertical, 4)
+                    } header: {
+                        Text("Noise Control")
+                    } footer: {
+                        Text("Noise control outside of modes, like the Noise Control screen in the Bose app.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                ModesListSection(modes: lm, editing: $editing)
             } else {
                 Text("This device has no noise control.")
             }
         }
         .formStyle(.grouped)
+        .sheet(item: $editing) { target in
+            ModeEditorSheet(target: target, nameOptions: state.listeningModes?.nameOptions ?? [],
+                            levelRange: state.listeningModes?.noiseLevelRange ?? 0 ... 10)
+                .environment(model)
+        }
+    }
+
+    private func currentModeFooter(_ lm: ListeningModesState) -> String {
+        if lm.noiseLevel != nil { return "Noise cancelling strength of this mode. Lower lets in more of your surroundings." }
+        if lm.current?.isUserMode == false {
+            return "Bose's own modes have a fixed noise cancelling level. Create your own mode below to pick the level, Wind Block and Immersive Audio."
+        }
+        return "This mode's noise cancelling level can't be changed."
     }
 
     private func footer(_ m: NoiseMode) -> String {
@@ -162,14 +198,19 @@ struct SoundPane: View {
 
 struct EqualizerPane: View {
     @Environment(AppModel.self) private var model
-    let state: HeadphoneState
+    let state: HeadphoneState?
 
     var body: some View {
         Form {
-            if let eq = state.equalizer {
-                Section("Preset") {
-                    Picker("Preset", selection: Binding(get: { eq.activePresetID }, set: { model.perform(.selectEqPreset(id: $0)) })) {
-                        ForEach(eq.presets) { Text($0.name).tag($0.id) }
+            if let eq = state?.equalizer {
+                if eq.presets.count <= 1 {
+                    EqPresetsSection(eq: eq)
+                }
+                if eq.presets.count > 1 {
+                    Section("Preset") {
+                        Picker("Preset", selection: Binding(get: { eq.activePresetID }, set: { model.perform(.selectEqPreset(id: $0)) })) {
+                            ForEach(eq.presets) { Text($0.name).tag($0.id) }
+                        }
                     }
                 }
                 Section {
@@ -180,11 +221,14 @@ struct EqualizerPane: View {
                         Button("Reset to Flat") { model.perform(.setEqBands(Array(repeating: 0, count: eq.bands.count))) }
                     }
                 } header: {
-                    Text("Bands")
+                    Text("Headphone EQ")
                 } footer: {
-                    Text("Changing a band switches to the Custom preset.").foregroundStyle(.secondary)
+                    if eq.presets.count > 1 {
+                        Text("Changing a band switches to the Custom preset.").foregroundStyle(.secondary)
+                    }
                 }
             }
+            MacEqualizerSections()
         }
         .formStyle(.grouped)
     }
@@ -271,6 +315,15 @@ struct DevicePane: View {
                     Text("Buttons")
                 } footer: {
                     Text("Voice assistants only work when their app is set up on the connected phone.").foregroundStyle(.secondary)
+                }
+            }
+            if !state.choices.isEmpty {
+                Section("Calls") {
+                    ForEach(state.choices) { c in
+                        Picker(c.title, selection: Binding(get: { c.selectedID }, set: { model.perform(.setChoice(id: c.id, optionID: $0)) })) {
+                            ForEach(c.options) { Text($0.title).tag($0.id) }
+                        }
+                    }
                 }
             }
             if !state.toggles.isEmpty {

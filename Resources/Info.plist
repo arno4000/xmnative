@@ -16,5 +16,7 @@
 	<key>NSHighResolutionCapable</key><true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>XMNative talks to your headphones over Bluetooth to change noise cancelling, equalizer and other settings.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>The Mac equalizer runs the sound this Mac plays through Apple's graphic equalizer before it reaches your headphones or speakers. Nothing is recorded or stored.</string>
 </dict>
 </plist>

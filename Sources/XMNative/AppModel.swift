@@ -3,6 +3,7 @@ import Observation
 import ServiceManagement
 import HeadphoneKit
 import SonyMDR
+import BoseBMAP
 import MacBluetooth
 
 @MainActor
@@ -47,8 +48,8 @@ final class AppModel {
     /// Bumped so SwiftUI re-reads `launchAtLogin` (SMAppService isn't observable).
     private var loginItemRevision = 0
 
-    /// Vendor plug-ins. A Bose driver would be appended here.
-    let factories: [HeadphoneDriverFactory] = [SonyDriverFactory()]
+    /// Vendor plug-ins. Sony first: Bose claims the generic serial port service, but only on Bose devices.
+    let factories: [HeadphoneDriverFactory] = [SonyDriverFactory(), BoseDriverFactory()]
 
     private let defaults = UserDefaults.standard
     private let directory = BluetoothDirectory()
@@ -59,6 +60,7 @@ final class AppModel {
         autoConnect = defaults.object(forKey: "autoConnect") as? Bool ?? true
         showBatteryInMenuBar = defaults.object(forKey: "showBatteryInMenuBar") as? Bool ?? true
         lastAddress = defaults.string(forKey: "lastAddress")
+        loadEqPresets()
         directory.onChange = { [weak self] in self?.devicesChanged() }
         directory.startObserving()
         reloadDevices()
@@ -71,7 +73,9 @@ final class AppModel {
 
     /// Paired devices that some driver can (probably) handle.
     var compatibleDevices: [DeviceDescriptor] {
-        devices.filter { d in factories.contains { $0.preferredService(for: d) != nil || $0.mightSupport(deviceName: d.name) } }
+        devices.filter { d in
+            factories.contains { $0.preferredService(for: d) != nil || $0.mightSupport(deviceName: d.name) || $0.mightSupport(device: d) }
+        }
     }
 
     func reloadDevices() {
@@ -139,8 +143,8 @@ final class AppModel {
         driver = drv
         connectedAddress = address
         wireLog.removeAll()
-        if let sony = drv as? SonyDriver {
-            sony.log = { [weak self] line in
+        if let logging = drv as? WireLogging {
+            logging.log = { [weak self] line in
                 guard let self, self.showWireLog else { return }
                 self.wireLog.append(line)
                 if self.wireLog.count > 400 { self.wireLog.removeFirst(self.wireLog.count - 400) }
@@ -206,6 +210,77 @@ final class AppModel {
 
     var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+    }
+
+    // MARK: EQ presets
+
+    struct EqPreset: Hashable {
+        let name: String
+        let values: [Int]
+    }
+
+    struct SavedEqPreset: Codable, Hashable, Identifiable {
+        var id: UUID
+        var name: String
+        var values: [Int]
+    }
+
+    /// The Bose app's headphone presets (cP3.a: bass, mid, treble), for 3-band bass/mid/treble EQs.
+    func builtInEqPresets(for eq: EqualizerState) -> [EqPreset] {
+        guard eq.presets.count <= 1, eq.bands.map(\.label) == ["Bass", "Mid", "Treble"] else { return [] }
+        return [
+            EqPreset(name: "Bass Boost", values: [8, 0, 0]),
+            EqPreset(name: "Bass Reducer", values: [-8, -2, 0]),
+            EqPreset(name: "Treble Boost", values: [0, 0, 6]),
+            EqPreset(name: "Treble Reducer", values: [0, -2, -6]),
+        ].map { EqPreset(name: $0.name, values: $0.values.map { min(max($0, eq.bandRange.lowerBound), eq.bandRange.upperBound) }) }
+    }
+
+    /// Saved presets, kept per band layout so they always fit the device.
+    private(set) var savedEqPresetsByLayout: [String: [SavedEqPreset]] = [:]
+
+    private func eqLayoutKey(_ eq: EqualizerState) -> String {
+        (state?.vendor ?? "") + ":" + eq.bands.map(\.label).joined(separator: "|")
+    }
+
+    func savedEqPresets(for eq: EqualizerState) -> [SavedEqPreset] {
+        savedEqPresetsByLayout[eqLayoutKey(eq)] ?? []
+    }
+
+    func saveEqPreset(name: String, eq: EqualizerState) {
+        let key = eqLayoutKey(eq)
+        var list = savedEqPresetsByLayout[key] ?? []
+        let values = eq.bands.map(\.value)
+        if let i = list.firstIndex(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
+            list[i].values = values
+        } else {
+            list.append(SavedEqPreset(id: UUID(), name: name, values: values))
+        }
+        savedEqPresetsByLayout[key] = list
+        persistEqPresets()
+    }
+
+    func deleteEqPreset(id: UUID, eq: EqualizerState) {
+        savedEqPresetsByLayout[eqLayoutKey(eq)]?.removeAll { $0.id == id }
+        persistEqPresets()
+    }
+
+    /// Name of the preset matching the current bands, if any.
+    func eqPresetName(for eq: EqualizerState) -> String? {
+        let values = eq.bands.map(\.value)
+        if values.allSatisfy({ $0 == 0 }) { return "Flat" }
+        return builtInEqPresets(for: eq).first { $0.values == values }?.name
+            ?? savedEqPresets(for: eq).first { $0.values == values }?.name
+    }
+
+    private func persistEqPresets() {
+        if let data = try? JSONEncoder().encode(savedEqPresetsByLayout) { defaults.set(data, forKey: "eqPresets") }
+    }
+
+    private func loadEqPresets() {
+        guard let data = defaults.data(forKey: "eqPresets"),
+              let decoded = try? JSONDecoder().decode([String: [SavedEqPreset]].self, from: data) else { return }
+        savedEqPresetsByLayout = decoded
     }
 
     /// Touch `loginItemRevision` so views refresh after toggling.

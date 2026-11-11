@@ -20,12 +20,19 @@ public struct DeviceDescriptor: Hashable, Sendable, Identifiable {
     public var isConnected: Bool
     /// RFCOMM service UUIDs advertised via SDP, mapped to their channel IDs.
     public var rfcommServices: [UUID: UInt8]
+    /// Every service class UUID in the cached SDP records (RFCOMM or not), for telling vendors apart.
+    public var advertisedServices: Set<UUID>
+    /// Bluetooth SIG company ID from the Device ID record (Sony 0x012D, Bose 0x009E), if cached.
+    public var vendorID: UInt16?
 
-    public init(address: String, name: String, isConnected: Bool, rfcommServices: [UUID: UInt8]) {
+    public init(address: String, name: String, isConnected: Bool, rfcommServices: [UUID: UInt8], advertisedServices: Set<UUID> = [],
+                vendorID: UInt16? = nil) {
         self.address = address
         self.name = name
         self.isConnected = isConnected
         self.rfcommServices = rfcommServices
+        self.advertisedServices = advertisedServices
+        self.vendorID = vendorID
     }
 }
 
@@ -42,6 +49,16 @@ public enum HeadphoneAction: Sendable, Equatable {
     case setConnectionPriority(ConnectionPriority)
     case setToggle(id: String, isOn: Bool)
     case setButton(id: Int, functionID: Int)
+    case selectListeningMode(id: Int)
+    /// Noise cancelling strength of the current listening mode.
+    case setNoiseLevel(Int, isFinal: Bool)
+    case setChoice(id: String, optionID: Int)
+    case createListeningMode(ListeningModeSettings)
+    case updateListeningMode(id: Int, ListeningModeSettings)
+    case deleteListeningMode(id: Int)
+    case setListeningModeFavorite(id: Int, isFavorite: Bool)
+    /// Noise control outside of modes. `isFinal == false` while the slider is dragged.
+    case setLiveNoise(isOn: Bool, level: Int, isFinal: Bool)
     case playback(PlaybackCommand)
     case setVolume(Int)
     case startOptimizer
@@ -63,6 +80,12 @@ public protocol HeadphoneDriver: AnyObject {
     func stop()
 }
 
+/// Drivers that can report the raw protocol traffic for the debug log.
+@MainActor
+public protocol WireLogging: AnyObject {
+    var log: ((String) -> Void)? { get set }
+}
+
 /// A vendor plug-in. Register one per protocol family (Sony MDR, Bose BMAP, ...).
 @MainActor
 public protocol HeadphoneDriverFactory {
@@ -74,6 +97,11 @@ public protocol HeadphoneDriverFactory {
     /// Picks the RFCOMM service to open on this device, or nil if the driver can't handle it.
     func preferredService(for device: DeviceDescriptor) -> (uuid: UUID, channel: UInt8)?
     func makeDriver(device: DeviceDescriptor, serviceUUID: UUID, transport: ByteTransport) -> HeadphoneDriver
+}
+
+extension HeadphoneDriverFactory {
+    /// Hint from cached metadata (vendor ID, advertised services) for devices whose control service isn't known yet.
+    public func mightSupport(device: DeviceDescriptor) -> Bool { false }
 }
 
 public enum HeadphoneError: Error, LocalizedError {
