@@ -5,8 +5,8 @@ SHA-256 `58837826f5f145cd0ad9689a298d2bfe9702f4d51d6d4e67d41440175ec0892c`) with
 Class names in brackets are the (partly obfuscated) classes in that build, so this can be re-checked
 against newer versions.
 
-Everything here is **static analysis** of the app. It has been verified against an in-process simulator
-(`SimulatedSonyV1Device`), **not yet against real hardware**. The byte-exact test vectors in
+Everything here is **static analysis** of the app and has been tested on a WH-1000XM4. It is also checked
+against an in-process simulator (`SimulatedSonyV1Device`). The byte-exact test vectors in
 `Tests/SonyMDRTests` are the executable form of this document. Port them first when moving to another language.
 
 ## 1. Transport

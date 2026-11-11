@@ -4,9 +4,9 @@ Reverse-engineered from the **Bose app 13.4.2** for Android (`com.bose.bosemusic
 `0468688c21ac7f3377e705c52541c040e51fcd018209eb903f329f7603c61342`) with JADX. The BMAP library in the app
 is not obfuscated (`com.bose.bmap.*`), so the class names below can be looked up directly.
 
-Everything here comes from **static analysis**. It has been checked against an in-process simulator
-(`SimulatedBoseDevice`), **not yet against real headphones**. `Tests/BoseBMAPTests` holds the byte-exact
-vectors.
+Everything here comes from **static analysis** of the app and has been tested on a QuietComfort Ultra
+Headphones (2nd Gen). `Tests/BoseBMAPTests` holds the byte-exact vectors and an in-process simulator
+(`SimulatedBoseDevice`).
 
 Target device: QuietComfort Ultra Headphones (2nd Gen), codename "Wolverine", product ID `0x4082`.
 
@@ -58,7 +58,7 @@ Same order as the app:
 5. Read the settings below. Unsupported functions answer with Error 4 quickly.
 
 The app also has a cloud "activation" / challenge flow in block 18. It isn't needed for the settings here
-(nothing in the app gates them on it), but this hasn't been confirmed on hardware.
+(nothing in the app gates them on it), and the QC Ultra Headphones (2nd Gen) work without it.
 
 ## 4. Audio modes (block 31) — noise cancelling on the QC Ultra family
 

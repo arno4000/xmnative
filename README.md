@@ -50,8 +50,8 @@ Sony uses two versions of this protocol:
   but not tried on real headphones yet. If you own one, please open an issue and say what works and what doesn't.
 
 Bose: the QuietComfort Ultra Headphones (2nd Gen) and other headphones the Bose app talks to over BMAP
-(QC Ultra, QuietComfort Headphones, QC45, NC 700, …). Implemented from the Bose app 13.4.2 but not tried on
-real headphones yet.
+(QC Ultra, QuietComfort Headphones, QC45, NC 700, …). Implemented from the Bose app 13.4.2 and tested on the
+QuietComfort Ultra Headphones (2nd Gen). Other Bose models haven't been tried yet.
 
 ## Install
 
